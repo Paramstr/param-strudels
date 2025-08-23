@@ -10,6 +10,7 @@ const RECONNECT_DELAY = 3000;
 // Command descriptions for better UX
 const COMMAND_DESCRIPTIONS = {
   'set-content': 'Setting new pattern',
+  'append-content': 'Adding to pattern',
   'replace': 'Replacing pattern elements',
   'evaluate': 'Running the music',
   'get-content': 'Reading current pattern',
@@ -111,10 +112,17 @@ function handleAPIMessage(message) {
       }
       break;
       
+    case 'append-content':
+      // Append content to editor
+      if (message.content !== undefined) {
+        editor.appendCode('\n' + message.content);
+      }
+      break;
+      
     case 'replace':
       // Replace text using regex
       try {
-        const currentCode = editor.getCode();
+        const currentCode = editor.code;
         const regex = new RegExp(message.find, message.flags || 'g');
         const newCode = currentCode.replace(regex, message.replace || '');
         editor.setCode(newCode);
@@ -124,13 +132,17 @@ function handleAPIMessage(message) {
       break;
       
     case 'evaluate':
-      // Trigger evaluation
-      if (message.selection) {
-        // Evaluate selection (if supported)
-        editor.evaluate();
-      } else {
-        // Evaluate all
-        editor.evaluate();
+      // Trigger evaluation with error capture
+      try {
+        if (message.selection) {
+          // Evaluate selection (if supported)
+          editor.evaluate();
+        } else {
+          // Evaluate all
+          editor.evaluate();
+        }
+      } catch (error) {
+        reportError(error, 'evaluation');
       }
       break;
       
@@ -145,6 +157,17 @@ function sendToAPI(message) {
   }
 }
 
+// Error reporting function
+function reportError(error, source = 'javascript') {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  sendToAPI({ 
+    type: 'error-report', 
+    error: errorMessage, 
+    source,
+    timestamp: new Date().toISOString()
+  });
+}
+
 // Initialize when browser is ready
 if (typeof window !== 'undefined') {
   // Wait a bit for the REPL to initialize
@@ -152,10 +175,40 @@ if (typeof window !== 'undefined') {
     connectWebSocket();
   }, 1000);
   
+  // Capture global JavaScript errors
+  window.addEventListener('error', (event) => {
+    reportError(event.error || event.message, 'global');
+  });
+  
+  // Capture unhandled promise rejections
+  window.addEventListener('unhandledrejection', (event) => {
+    reportError(event.reason, 'promise');
+  });
+  
+  // Capture console errors by intercepting console.error
+  const originalConsoleError = console.error;
+  console.error = function(...args) {
+    // Call original console.error
+    originalConsoleError.apply(console, args);
+    
+    // Report the error with better formatting
+    const errorMessage = args.map(arg => {
+      if (arg instanceof Error) {
+        return `${arg.name}: ${arg.message}`;
+      } else if (typeof arg === 'object') {
+        return JSON.stringify(arg, null, 2);
+      } else {
+        return String(arg);
+      }
+    }).join(' ');
+    reportError(errorMessage, 'console');
+  };
+  
   // Also expose API client globally for debugging
   window.strudelAPI = {
     connect: connectWebSocket,
     send: sendToAPI,
-    getEditor: () => window.strudelMirror
+    getEditor: () => window.strudelMirror,
+    reportError: reportError
   };
 }

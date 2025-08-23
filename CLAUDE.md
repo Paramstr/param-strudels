@@ -28,8 +28,10 @@ pnpm dev
 # Terminal 3: Control music with CLI
 node strudel-cli.mjs get                    # Read current code
 node strudel-cli.mjs set "$: 'bd hh'"      # Set new pattern
+node strudel-cli.mjs append ".lpf(800)"    # Add to current pattern
 node strudel-cli.mjs replace "bd" "808"    # Replace sounds
 node strudel-cli.mjs eval                  # Trigger playback
+node strudel-cli.mjs errors                # Check JavaScript errors
 node strudel-cli.mjs status                # Check connection
 ```
 
@@ -52,7 +54,22 @@ node strudel-cli.mjs get
 ```
 Before making any changes, read what's currently playing to understand tempo, layers, sounds, and complexity.
 
-### 2. Strudel Music Language
+### 2. ERROR MONITORING
+The system automatically captures JavaScript errors from the browser and reports them through the CLI:
+```bash
+node strudel-cli.mjs errors  # Check recent JavaScript errors
+```
+**Automatic error checking:** Hooks are configured to automatically check for errors after `set`, `append`, and `eval` commands. Errors include:
+- Syntax errors (missing brackets, quotes, etc.)
+- Runtime errors (undefined functions, invalid patterns)
+- Pattern evaluation failures
+
+Common error fixes:
+- `SyntaxError: Unexpected token` → Check brackets, commas, parentheses
+- `func is not a function` → Check method names and available functions
+- Use `"~"` for silence instead of `silence`
+
+### 3. Strudel Music Language
 ```javascript
 // Basic pattern
 $: "bd hh sd hh".s()
@@ -73,7 +90,7 @@ stack(
 - Synths: `.s("sawtooth")` (generated tones)
 - Effects: `.delay(0.2).reverb(0.3).lpf(800)`
 
-### 3. CLI Best Practices
+### 4. CLI Best Practices
 ```bash
 # Multi-line code (use $'...' for newlines)
 node strudel-cli.mjs set $'stack(\n  "bd ~ sd ~".s()\n).cpm(90)'

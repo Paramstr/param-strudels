@@ -53,7 +53,13 @@
     "@strudel/tonal": "workspace:*",
     "@strudel/transpiler": "workspace:*",
     "@strudel/webaudio": "workspace:*",
-    "@strudel/xen": "workspace:*"
+    "@strudel/xen": "workspace:*",
+    "boxen": "^8.0.1",
+    "chalk": "^5.6.0",
+    "cli-spinners": "^3.2.0",
+    "figlet": "^1.8.2",
+    "gradient-string": "^3.0.0",
+    "ora": "^8.2.0"
   },
   "devDependencies": {
     "@eslint/compat": "^1.2.5",
@@ -74,8 +80,8 @@
     "jsdoc-json": "^2.0.2",
     "lerna": "^8.1.9",
     "prettier": "^3.4.2",
-    "vitest": "^3.0.4",
     "vite-plugin-bundle-audioworklet": "workspace:*",
+    "vitest": "^3.0.4",
     "ws": "^8.18.0"
   }
 }

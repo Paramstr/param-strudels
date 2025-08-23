@@ -5,6 +5,7 @@
 
 import { readFileSync } from 'fs';
 import http from 'http';
+import chalk from 'chalk';
 
 const API_HOST = 'localhost';
 const API_PORT = 3001;
@@ -39,22 +40,22 @@ async function makeRequest(endpoint, method = 'GET', data = null) {
           const result = JSON.parse(responseData);
           
           if (res.statusCode !== 200) {
-            console.error('❌ Error:', result.error || 'Unknown error');
+            console.error(chalk.red('❌ Error:'), result.error || 'Unknown error');
             resolve(false);
           } else {
             resolve(result);
           }
         } catch (error) {
-          console.error('❌ Invalid JSON response:', error.message);
+          console.error(chalk.red('❌ Invalid JSON response:'), error.message);
           resolve(false);
         }
       });
     });
     
     req.on('error', (error) => {
-      console.error('❌ Connection failed. Is the API server running?');
-      console.error('   Run: npm run api');
-      console.error('   Error:', error.message);
+      console.error(chalk.red('❌ Connection failed. Is the API server running?'));
+      console.error(chalk.yellow('   Run: npm run api'));
+      console.error(chalk.gray('   Error:'), error.message);
       resolve(false);
     });
     
@@ -67,16 +68,16 @@ async function makeRequest(endpoint, method = 'GET', data = null) {
 }
 
 async function getContent() {
-  console.log('📄 Getting editor content...');
+  console.log(chalk.blue('📄 Getting editor content...'));
   const result = await makeRequest('/editor/content');
   if (result) {
-    console.log('✅ Content retrieved');
-    console.log(`   Length: ${result.length} characters`);
+    console.log(chalk.green('✅ Content retrieved'));
+    console.log(chalk.gray(`   Length: ${result.length} characters`));
     console.log('');
-    console.log('📝 Current editor content:');
-    console.log('─'.repeat(50));
-    console.log(result.content);
-    console.log('─'.repeat(50));
+    console.log(chalk.magenta('📝 Current editor content:'));
+    console.log(chalk.gray('─'.repeat(50)));
+    console.log(chalk.white(result.content));
+    console.log(chalk.gray('─'.repeat(50)));
   }
 }
 
@@ -87,11 +88,11 @@ async function setContent(content) {
     .replace(/\\t/g, '\t')
     .replace(/\\r/g, '\r');
     
-  console.log('📝 Setting editor content...');
+  console.log(chalk.blue('📝 Setting editor content...'));
   const result = await makeRequest('/editor/content', 'POST', { content: processedContent });
   if (result) {
-    console.log('✅', result.message);
-    console.log(`   Content length: ${processedContent.length} characters`);
+    console.log(chalk.green('✅'), result.message);
+    console.log(chalk.gray(`   Content length: ${processedContent.length} characters`));
   }
 }
 
@@ -104,10 +105,10 @@ async function replaceText(find, replace) {
 }
 
 async function evaluate(selection = false) {
-  console.log(selection ? '▶️ Evaluating selection...' : '▶️ Evaluating all code...');
+  console.log(chalk.magenta(selection ? '▶️ Evaluating selection...' : '▶️ Evaluating all code...'));
   const result = await makeRequest('/editor/eval', 'POST', { selection });
   if (result) {
-    console.log('✅', result.message);
+    console.log(chalk.green('✅'), chalk.bold('🎵 MUSIC PLAYING! '), result.message);
   }
 }
 
@@ -118,6 +119,39 @@ async function status() {
     console.log('✅ Server Status:', result.status);
     console.log(`   Connected browsers: ${result.clients}`);
     console.log(`   Message: ${result.message}`);
+  }
+}
+
+async function appendContent(content) {
+  // Process escape sequences like \n, \t
+  const processedContent = content
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '\t')
+    .replace(/\\r/g, '\r');
+    
+  console.log('➕ Appending content to editor...');
+  const result = await makeRequest('/editor/append', 'POST', { content: processedContent });
+  if (result) {
+    console.log('✅', result.message);
+    console.log(`   Content length: ${processedContent.length} characters`);
+  }
+}
+
+async function checkErrors() {
+  console.log('🔍 Checking for JavaScript errors...');
+  const result = await makeRequest('/errors');
+  if (result) {
+    if (result.errors.length === 0) {
+      console.log(chalk.green('✅ No recent errors found'));
+    } else {
+      console.log(chalk.yellow(`⚠️ Found ${result.errors.length} recent errors:`));
+      console.log(chalk.gray('─'.repeat(50)));
+      result.errors.forEach((error, index) => {
+        console.log(chalk.red(`${index + 1}. [${error.source}] ${error.message}`));
+        console.log(chalk.gray(`   Time: ${new Date(error.timestamp).toLocaleString()}`));
+        console.log('');
+      });
+    }
   }
 }
 
@@ -140,8 +174,10 @@ Usage:
 
 Commands:
   status                    Check API server and browser connection
+  errors                    Check for recent JavaScript errors
   get                      Get current editor content
   set <content>            Set editor content
+  append <content>         Append content to editor
   load <file>              Load content from file
   replace <find> <replace> Replace text (supports regex)
   eval                     Evaluate current code
@@ -149,7 +185,9 @@ Commands:
 
 Examples:
   node strudel-cli.mjs status
+  node strudel-cli.mjs errors
   node strudel-cli.mjs set "bd hh sd hh"
+  node strudel-cli.mjs append ".lpf(800)"
   node strudel-cli.mjs replace "bd" "808"
   node strudel-cli.mjs load my-pattern.js
   node strudel-cli.mjs eval
@@ -167,6 +205,10 @@ switch (command) {
     await status();
     break;
     
+  case 'errors':
+    await checkErrors();
+    break;
+    
   case 'get':
     await getContent();
     break;
@@ -177,6 +219,14 @@ switch (command) {
       process.exit(1);
     }
     await setContent(args.join(' '));
+    break;
+    
+  case 'append':
+    if (args.length === 0) {
+      console.error('❌ Usage: append <content>');
+      process.exit(1);
+    }
+    await appendContent(args.join(' '));
     break;
     
   case 'load':

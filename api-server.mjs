@@ -8,6 +8,146 @@ import express from 'express';
 import cors from 'cors';
 import { WebSocket, WebSocketServer } from 'ws';
 import { createServer } from 'http';
+import chalk from 'chalk';
+import boxen from 'boxen';
+import figlet from 'figlet';
+import gradient from 'gradient-string';
+import ora from 'ora';
+
+// 🎨 Beautiful Logger System
+const logger = {
+  // Server startup and system messages
+  system: (message) => {
+    console.log(boxen(
+      gradient.rainbow(message),
+      { 
+        title: chalk.bold.magenta('🎵 STRUDEL SYSTEM'),
+        titleAlignment: 'center',
+        padding: 1,
+        margin: { top: 1, bottom: 1 },
+        borderStyle: 'double',
+        borderColor: 'magenta'
+      }
+    ));
+  },
+
+  // Connection events (browsers connecting/disconnecting)
+  connection: (message, type = 'connected') => {
+    const color = type === 'connected' ? 'green' : 'yellow';
+    const emoji = type === 'connected' ? '🔗' : '🔌';
+    console.log(boxen(
+      chalk[color].bold(message),
+      {
+        title: chalk.bold[color](`${emoji} CONNECTION`),
+        padding: { top: 0, bottom: 0, left: 2, right: 2 },
+        borderStyle: 'round',
+        borderColor: color,
+        margin: { left: 2 }
+      }
+    ));
+  },
+
+  // API requests and responses
+  api: (method, endpoint, details = '') => {
+    const methodColors = {
+      'GET': 'blue',
+      'POST': 'green',
+      'PUT': 'orange',
+      'DELETE': 'red'
+    };
+    const color = methodColors[method] || 'white';
+    const message = `${chalk.bold[color](method)} ${chalk.cyan(endpoint)}${details ? '\n' + chalk.gray(details) : ''}`;
+    
+    console.log(boxen(
+      message,
+      {
+        title: chalk.bold.blue('🚀 API REQUEST'),
+        padding: { top: 0, bottom: 0, left: 1, right: 1 },
+        borderStyle: 'single',
+        borderColor: color,
+        margin: { left: 1 }
+      }
+    ));
+  },
+
+  // AI music updates and code changes
+  music: (message, type = 'update') => {
+    const colors = {
+      'update': ['#ff9a9e', '#fecfef', '#fecfef'],
+      'eval': ['#a8edea', '#fed6e3'],
+      'content': ['#ffd89b', '#19547b']
+    };
+    const gradientColors = colors[type] || colors.update;
+    
+    console.log(boxen(
+      gradient(gradientColors)(message),
+      {
+        title: chalk.bold.magenta('🎼 AI MUSIC'),
+        titleAlignment: 'center',
+        padding: 1,
+        borderStyle: 'bold',
+        borderColor: 'magenta',
+        margin: { top: 0, bottom: 1, left: 1 }
+      }
+    ));
+  },
+
+  // WebSocket messages
+  websocket: (message, direction = 'received') => {
+    const color = direction === 'received' ? 'cyan' : 'blue';
+    const arrow = direction === 'received' ? '⬇️' : '⬆️';
+    
+    console.log(
+      chalk[color](`${arrow} WS ${direction.toUpperCase()}: `) +
+      chalk.white(message) +
+      chalk.gray(` [${new Date().toLocaleTimeString()}]`)
+    );
+  },
+
+  // Error messages
+  error: (message, details = '') => {
+    console.log(boxen(
+      chalk.red.bold(message) + (details ? '\n' + chalk.gray(details) : ''),
+      {
+        title: chalk.bold.red('❌ ERROR'),
+        padding: 1,
+        borderStyle: 'double',
+        borderColor: 'red',
+        margin: { top: 1, bottom: 1 }
+      }
+    ));
+  },
+
+  // Success messages
+  success: (message) => {
+    console.log(boxen(
+      chalk.green.bold(message),
+      {
+        title: chalk.bold.green('✅ SUCCESS'),
+        padding: { top: 0, bottom: 0, left: 1, right: 1 },
+        borderStyle: 'round',
+        borderColor: 'green',
+        margin: { left: 1 }
+      }
+    ));
+  },
+
+  // Warning messages
+  warning: (message) => {
+    console.log(
+      chalk.bgYellow.black.bold(' ⚠️  WARNING ') + ' ' +
+      chalk.yellow(message)
+    );
+  },
+
+  // Info messages (simple, no box)
+  info: (message) => {
+    console.log(
+      chalk.blue('ℹ️  ') + chalk.white(message) + 
+      chalk.gray(` [${new Date().toLocaleTimeString()}]`)
+    );
+  }
+};
 
 const app = express();
 const server = createServer(app);
@@ -21,6 +161,9 @@ const clients = new Set();
 
 // Store pending requests waiting for responses
 const pendingRequests = new Map();
+
+// Store recent errors for retrieval
+const recentErrors = [];
 
 // WebSocket connection handler
 wss.on('connection', (ws) => {
@@ -47,6 +190,23 @@ wss.on('connection', (ws) => {
           resolve(message.content);
           pendingRequests.delete(message.id);
         }
+      }
+      
+      // Handle error reports from browser
+      if (message.type === 'error-report') {
+        const errorInfo = {
+          message: message.error,
+          timestamp: new Date().toISOString(),
+          source: message.source || 'unknown'
+        };
+        recentErrors.push(errorInfo);
+        
+        // Keep only last 10 errors
+        if (recentErrors.length > 10) {
+          recentErrors.shift();
+        }
+        
+        console.log('❌ JavaScript error reported:', message.error);
       }
     } catch (e) {
       console.error('❌ Invalid message from browser:', e);
@@ -119,6 +279,21 @@ app.post('/api/editor/content', (req, res) => {
   }
 });
 
+// Append content to editor
+app.post('/api/editor/append', (req, res) => {
+  const { content } = req.body;
+  if (!content && content !== '') {
+    return res.status(400).json({ error: 'Content is required' });
+  }
+  
+  const sent = broadcast({ type: 'append-content', content });
+  if (sent) {
+    res.json({ message: 'Content appended', length: content.length });
+  } else {
+    res.status(503).json({ error: 'No browsers connected' });
+  }
+});
+
 // Replace text by pattern/range
 app.post('/api/editor/replace', (req, res) => {
   const { find, replace, flags = 'g' } = req.body;
@@ -145,11 +320,20 @@ app.post('/api/editor/eval', (req, res) => {
   }
 });
 
+// Get recent errors
+app.get('/api/errors', (req, res) => {
+  res.json({ 
+    errors: recentErrors,
+    count: recentErrors.length 
+  });
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     clients: clients.size,
+    errors: recentErrors.length,
     message: 'Strudel API Server is running'
   });
 });
@@ -161,8 +345,10 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     endpoints: {
       'GET /api/health': 'Check server status',
+      'GET /api/errors': 'Get recent JavaScript errors',
       'GET /api/editor/content': 'Get editor content',
       'POST /api/editor/content': 'Set editor content',
+      'POST /api/editor/append': 'Append content to editor',
       'POST /api/editor/replace': 'Replace text patterns',
       'POST /api/editor/eval': 'Evaluate code'
     },
