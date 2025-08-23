@@ -1,49 +1,45 @@
-# strudel
+# Param Strudels — AI‑Assisted Live Coding for Strudel
 
-Live coding patterns on the web
-https://strudel.cc/
+Build and perform live music with an autonomous AI agent that can read, write and evaluate Strudel code in your browser IDE.
 
-Development is moving to https://codeberg.org/uzu/strudel
+This repo adds a lightweight API layer and CLI so external agents can control the Strudel editor in real time over HTTP/WebSocket, without invasive changes to core Strudel.
 
-- Try it here: <https://strudel.cc>
-- Docs: <https://strudel.cc/learn>
-- Technical Blog Post: <https://loophole-letters.vercel.app/strudel>
-- 1 Year of Strudel Blog Post: <https://loophole-letters.vercel.app/strudel1year>
-- 2 Years of Strudel Blog Post: <https://strudel.cc/blog/#year-2>
+## What’s inside
 
-## Running Locally
+- API server (Express + WebSocket) translating HTTP into editor actions
+- Browser client that connects automatically and drives CodeMirror
+- Minimal CLI for sending commands from the terminal
 
-After cloning the project, you can run the REPL locally:
+## Quick start
 
-1. Install [Node.js](https://nodejs.org/)
-2. Install [pnpm](https://pnpm.io/installation)
-3. Install dependencies by running the following command:
+1. Install prerequisites
    ```bash
    pnpm i
    ```
-4. Run the development server:
+2. Start the API server
+   ```bash
+   pnpm api
+   ```
+3. Start the Strudel dev server (opens the IDE)
    ```bash
    pnpm dev
    ```
+4. In another terminal, try a command (sets code in the editor)
+   ```bash
+   node strudel-cli.mjs set "$: 'bd hh'"
+   ```
 
-## Using Strudel In Your Project
+That’s it — the AI bridge is live. Agents can now GET/SET editor content and trigger evaluation remotely.
 
-This project is organized into many [packages](./packages), which are also available on [npm](https://www.npmjs.com/search?q=%40strudel).
+## Premise
 
-Read more about how to use these in your own project [here](https://strudel.cc/technical-manual/project-start).
+An autonomous agent collaborates with you by editing and executing Strudel patterns in real time, enabling hands‑free arrangement, transformation, and performance.
 
-You will need to abide by the terms of the [GNU Affero Public Licence v3](LICENSE). As such, Strudel code can only be shared within free/open source projects under the same license -- see the license for details.
+## More details
 
-Licensing info for the default sound banks can be found over on the [dough-samples](https://github.com/felixroos/dough-samples/blob/main/README.md) repository.
+High‑level plan and technical overview live in the commit notes and these docs:
 
-## Contributing
+- `plan.md` — roadmap and phases
+- `overview.md` — architecture and workflow
 
-There are many ways to contribute to this project! See [contribution guide](./CONTRIBUTING.md). You can find the full list of contributors [here](https://codeberg.org/uzu/strudel/activity/contributors).
-
-## Community
-
-There is a #strudel channel on the TidalCycles discord: <https://discord.com/invite/HGEdXmRkzT>
-
-You can also ask questions and find related discussions on the tidal club forum: <https://club.tidalcycles.org/>
-
-The discord and forum is shared with the haskell (tidal) and python (vortex) siblings of this project.
+License: [AGPL‑3.0‑or‑later](LICENSE)

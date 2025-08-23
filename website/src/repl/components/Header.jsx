@@ -2,6 +2,7 @@ import PlayCircleIcon from '@heroicons/react/20/solid/PlayCircleIcon';
 import StopCircleIcon from '@heroicons/react/20/solid/StopCircleIcon';
 import cx from '@src/cx.mjs';
 import { useSettings, setIsZen } from '../../settings.mjs';
+import { APIStatus } from './APIStatus.jsx';
 import '../Repl.css';
 
 const { BASE_URL } = import.meta.env;
@@ -62,6 +63,10 @@ export function Header({ context, embedded = false }) {
           )}
         </h1>
       </div>
+      
+      {/* API Status in center */}
+      {!isZen && <APIStatus />}
+      
       {!isZen && !isButtonRowHidden && (
         <div className="flex max-w-full overflow-auto text-foreground px-1 md:px-2">
           <button

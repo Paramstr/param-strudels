@@ -199,3 +199,19 @@
 
 .autocomplete-info-tooltip::-webkit-scrollbar-thumb:hover {
 }
+
+/* API Status Animations */
+@keyframes fade-in-slide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateX(0);
+  }
+}
+
+.animate-fade-in-slide {
+  animation: fade-in-slide 0.3s ease-out;
+}
