@@ -20,25 +20,56 @@ An API bridge that lets external AI agents (like Claude) read and write code in 
 - **Key endpoints**:
   - `GET /api/editor/content` - Read current code
   - `POST /api/editor/content` - Set entire code
+  - `POST /api/editor/append` - Append content to editor
   - `POST /api/editor/replace` - Replace text patterns
   - `POST /api/editor/eval` - Execute code
+  - `GET /api/errors` - Get recent JavaScript errors
   - `GET /api/health` - Connection status
 
 ### 2. Browser Client (`website/src/repl/api-client.mjs`)
 - **Purpose**: Receives WebSocket commands and controls CodeMirror
 - **Auto-loads**: Imported in `useReplContext.jsx`
-- **Key methods**: `editor.code` (read), `editor.setCode()` (write), `editor.evaluate()` (run)
+- **Key methods**: `editor.code` (read), `editor.setCode()` (write), `editor.appendCode()` (append), `editor.evaluate()` (run)
+- **Error capture**: Global error handlers, console.error interception, promise rejection handling
 - **Global**: Available as `window.strudelAPI`
 
 ### 3. CLI Tool (`strudel-cli.mjs`)
 - **Purpose**: Command-line interface for testing/controlling
 - **Usage**: `node strudel-cli.mjs <command>`
-- **Commands**: `get`, `set`, `replace`, `eval`, `status`
+- **Commands**: `get`, `set`, `append`, `replace`, `eval`, `errors`, `status`
+- **Auto error checking**: Configured hooks automatically check for errors after `set`, `append`, and `eval`
 
 ### 4. UI Feedback (`website/src/repl/components/APIStatus.jsx`)
 - **Purpose**: Shows live connection status and command feed
 - **Location**: Strudel header bar
 - **Displays**: Green dot + "AI CONNECTED" + live command alerts
+
+## Error Monitoring System
+
+### Real-time JavaScript Error Capture
+The system automatically captures and reports JavaScript errors from the browser to provide immediate feedback during live coding:
+
+**Error Sources Captured:**
+- Syntax errors (missing brackets, quotes, etc.)
+- Runtime errors (undefined functions, invalid patterns)  
+- Promise rejections (async operation failures)
+- Console errors (logged error messages)
+- Pattern evaluation failures
+
+**Error Flow:**
+```
+1. JavaScript error occurs in browser
+2. Error captured by global handlers or console.error interception
+3. Error sent via WebSocket to API server: {"type":"error-report","error":"..."}
+4. API server stores error with timestamp and source
+5. CLI command retrieves errors: GET /api/errors
+```
+
+**Automatic Error Checking:**
+- Hooks configured in `.claude/settings.local.json`
+- Automatic `errors` command runs after `set`, `append`, and `eval`
+- 3-second delay allows error capture before checking
+- Provides immediate feedback on coding mistakes
 
 ## How It Works
 
@@ -102,6 +133,7 @@ window.strudelMirror.evaluate();
 ### Commands (API Server → Browser)
 ```javascript
 {"type": "set-content", "content": "$: 'bd hh'"}
+{"type": "append-content", "content": ".lpf(800)"}
 {"type": "replace", "find": "bd", "replace": "808"}
 {"type": "evaluate", "selection": false}
 {"type": "get-content", "id": 123}
@@ -110,6 +142,7 @@ window.strudelMirror.evaluate();
 ### Responses (Browser → API Server)
 ```javascript
 {"type": "content-response", "id": 123, "content": "$: 'bd hh'"}
+{"type": "error-report", "error": "SyntaxError: Unexpected token", "source": "console"}
 ```
 
 ## Development Workflow
@@ -131,13 +164,17 @@ npm run dev
 # Terminal 3: Test commands
 node strudel-cli.mjs status
 node strudel-cli.mjs set "$: 'bd hh'"
+node strudel-cli.mjs append ".lpf(800)"
+node strudel-cli.mjs errors
 node strudel-cli.mjs get
 ```
 
 ### 3. Debugging
 - Browser console: WebSocket connection logs
-- API server: Terminal output shows connections/commands
+- API server: Terminal output shows connections/commands  
 - Network tab: HTTP requests to localhost:3001
+- **Error monitoring**: `node strudel-cli.mjs errors` for recent JavaScript errors
+- **Automatic error checking**: Hooks run error checks after music commands
 
 ## Common Issues & Fixes
 

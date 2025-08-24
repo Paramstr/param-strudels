@@ -19,14 +19,14 @@ const logger = {
   // Server startup and system messages
   system: (message) => {
     console.log(boxen(
-      gradient.rainbow(message),
+      gradient(['#ff6b35', '#ff8c42', '#ffa726'])(message),
       { 
-        title: chalk.bold.magenta('🎵 STRUDEL SYSTEM'),
+        title: chalk.bold.hex('#ff6b35')('🎵 STRUDEL SYSTEM'),
         titleAlignment: 'center',
         padding: 1,
         margin: { top: 1, bottom: 1 },
         borderStyle: 'double',
-        borderColor: 'magenta'
+        borderColor: '#ff6b35'
       }
     ));
   },
@@ -73,20 +73,20 @@ const logger = {
   // AI music updates and code changes
   music: (message, type = 'update') => {
     const colors = {
-      'update': ['#ff9a9e', '#fecfef', '#fecfef'],
-      'eval': ['#a8edea', '#fed6e3'],
-      'content': ['#ffd89b', '#19547b']
+      'update': ['#ff6b35', '#ff8c42', '#ffa726'], // Claude orange sunset
+      'eval': ['#ff6b35', '#ff8c42', '#ff7043'], // Orange to deep orange
+      'content': ['#ff8c42', '#ffa726', '#ffcc80'] // Warm sunset fade
     };
     const gradientColors = colors[type] || colors.update;
     
     console.log(boxen(
       gradient(gradientColors)(message),
       {
-        title: chalk.bold.magenta('🎼 AI MUSIC'),
+        title: chalk.bold.hex('#ff6b35')('🎼 AI MUSIC'),
         titleAlignment: 'center',
         padding: 1,
         borderStyle: 'bold',
-        borderColor: 'magenta',
+        borderColor: '#dc2626',
         margin: { top: 0, bottom: 1, left: 1 }
       }
     ));
@@ -167,22 +167,25 @@ const recentErrors = [];
 
 // WebSocket connection handler
 wss.on('connection', (ws) => {
-  console.log('📡 Browser connected to API server');
+  logger.connection('Browser connected to API server', 'connected');
   clients.add(ws);
   
   ws.on('close', () => {
     clients.delete(ws);
-    console.log('📡 Browser disconnected from API server');
+    logger.connection('Browser disconnected from API server', 'disconnected');
   });
   
   ws.on('message', (data) => {
     try {
       const message = JSON.parse(data);
-      console.log('📨 Received from browser:', message.type);
+      logger.websocket(`Received: ${message.type}`, 'received');
       
       // Handle responses from browser
       if (message.type === 'content-response') {
-        console.log('📄 Editor content received:', message.content.substring(0, 100) + '...');
+        const preview = message.content.length > 100 ? 
+          message.content.substring(0, 100) + '...' : 
+          message.content;
+        logger.music(`Editor content received (${message.content.length} chars)\n${chalk.gray(preview)}`, 'content');
         
         // If there's a pending request waiting for this response, resolve it
         if (message.id && pendingRequests.has(message.id)) {
@@ -206,10 +209,10 @@ wss.on('connection', (ws) => {
           recentErrors.shift();
         }
         
-        console.log('❌ JavaScript error reported:', message.error);
+        logger.error('JavaScript error reported from browser', message.error);
       }
     } catch (e) {
-      console.error('❌ Invalid message from browser:', e);
+      logger.error('Invalid message from browser', e.message);
     }
   });
 });
@@ -217,11 +220,12 @@ wss.on('connection', (ws) => {
 // Broadcast message to all connected browsers
 function broadcast(message) {
   if (clients.size === 0) {
-    console.log('⚠️ No browsers connected');
+    logger.warning('No browsers connected');
     return false;
   }
   
   const data = JSON.stringify(message);
+  logger.websocket(`Broadcasting: ${message.type}`, 'sent');
   clients.forEach(client => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(data);
@@ -234,6 +238,8 @@ function broadcast(message) {
 
 // Get current editor content
 app.get('/api/editor/content', async (req, res) => {
+  logger.api('GET', '/api/editor/content', 'Requesting current code from browser');
+  
   if (clients.size === 0) {
     return res.status(503).json({ error: 'No browsers connected' });
   }
@@ -271,8 +277,12 @@ app.post('/api/editor/content', (req, res) => {
     return res.status(400).json({ error: 'Content is required' });
   }
   
+  const preview = content.length > 50 ? content.substring(0, 50) + '...' : content;
+  logger.api('POST', '/api/editor/content', `Setting new code (${content.length} chars)\n${chalk.gray(preview)}`);
+  
   const sent = broadcast({ type: 'set-content', content });
   if (sent) {
+    logger.music(`Code updated successfully! New pattern loaded.`, 'update');
     res.json({ message: 'Content updated', length: content.length });
   } else {
     res.status(503).json({ error: 'No browsers connected' });
@@ -301,8 +311,11 @@ app.post('/api/editor/replace', (req, res) => {
     return res.status(400).json({ error: 'Find pattern is required' });
   }
   
+  logger.api('POST', '/api/editor/replace', `Replace: "${find}" → "${replace || ''}"`);
+  
   const sent = broadcast({ type: 'replace', find, replace: replace || '', flags });
   if (sent) {
+    logger.music(`Pattern replaced: "${chalk.red(find)}" → "${chalk.green(replace || '')}"`, 'update');
     res.json({ message: 'Text replacement sent', find, replace, flags });
   } else {
     res.status(503).json({ error: 'No browsers connected' });
@@ -312,8 +325,12 @@ app.post('/api/editor/replace', (req, res) => {
 // Evaluate current selection/all
 app.post('/api/editor/eval', (req, res) => {
   const { selection = false } = req.body;
+  
+  logger.api('POST', '/api/editor/eval', selection ? 'Evaluating selection' : 'Evaluating all code');
+  
   const sent = broadcast({ type: 'evaluate', selection });
   if (sent) {
+    logger.music('🎵 MUSIC IS PLAYING! Code evaluation triggered 🎵', 'eval');
     res.json({ message: 'Code evaluation triggered', selection });
   } else {
     res.status(503).json({ error: 'No browsers connected' });
@@ -359,8 +376,32 @@ app.get('/', (req, res) => {
 const PORT = process.env.STRUDEL_API_PORT || 3001;
 
 server.listen(PORT, () => {
-  console.log(`🎵 Strudel API Server running on http://localhost:${PORT}`);
-  console.log(`🔗 WebSocket server running on ws://localhost:${PORT}`);
-  console.log(`📡 Waiting for browser connections...`);
-  console.log(`💡 Try: curl http://localhost:${PORT}/api/health`);
+  // Cool startup banner
+  const banner = `
+ ██████ ██   ██ ██ ███████ ███████      ██████ ██       █████  ██    ██ ██████  ███████ 
+██      ██   ██ ██ ██      ██          ██      ██      ██   ██ ██    ██ ██   ██ ██      
+██      ███████ ██ █████   █████       ██      ██      ███████ ██    ██ ██   ██ █████   
+██      ██   ██ ██ ██      ██          ██      ██      ██   ██ ██    ██ ██   ██ ██      
+ ██████ ██   ██ ██ ███████ ██           ██████ ███████ ██   ██  ██████  ██████  ███████`;
+  
+  console.log('\n' + gradient(['#ff6b35', '#ff8c42', '#ffa726', '#ffcc80'])(banner));
+  console.log(chalk.hex('#ff8c42').italic('                    A sensory and combative experience with claude.'));
+  
+  logger.system(`API Server running on http://localhost:${PORT}`);
+  logger.system(`WebSocket server running on ws://localhost:${PORT}`);
+  logger.info('Waiting for browser connections...');
+  logger.info(`Try: curl http://localhost:${PORT}/api/health`);
+  
+  // Start a spinner to show the server is alive
+  const spinner = ora({
+    text: chalk.cyan('Ready for AI music magic! 🎼✨'),
+    spinner: 'dots12',
+    color: 'magenta'
+  }).start();
+  
+  // Stop spinner after 3 seconds to avoid clutter
+  setTimeout(() => {
+    spinner.stop();
+    console.log(chalk.green('🎯 Server ready! Waiting for connections...\n'));
+  }, 3000);
 });

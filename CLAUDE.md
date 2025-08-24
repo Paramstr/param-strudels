@@ -175,3 +175,39 @@ This is a pnpm workspace with multiple packages. The main entry points are:
 - Individual packages can be built independently
 
 Remember: You're composing music through code. Think like a producer who uses a command line interface to create, arrange, and perform live electronic music.
+
+## Musical Style & Taste Guidelines
+
+### Sound Design Principles
+- **Soft over harsh**: Use "perc" instead of "cp", lower gains (0.15-0.4), add room/reverb for smoothness
+- **Frequency separation**: Bass lpf(60-200), mids lpf(600-1000), hi-hats hpf(8000+)
+- **Dynamic range**: Kick (0.6-0.8), bass (0.4-0.6), leads (0.3-0.4), atmospherics (0.15-0.25)
+
+### Rhythmic Sophistication  
+- **Micro-dynamics**: `[.15 .8]*4` creates groove within beats
+- **Strategic rests**: `~ [c2 ~ eb2]` adds funk through syncopation
+- **Multiple tempos**: `.slow("1,1.5,2")` layers different time feels
+
+### Harmonic Beauty
+- **Pentatonic scales**: C-Eb-F-G-Bb sound inherently pleasing
+- **Logical progressions**: C-Bb-F-Eb or vi-IV-I-V patterns
+- **Octave doubling**: `jux(x => x.add(12))` adds richness
+
+### Spatial Effects
+- **Subtle reverb**: room(0.2-0.8) creates space without mud
+- **Rhythmic delays**: delay(1/8, 1/4) matched to groove subdivisions  
+- **Filter sweeps**: `cutoff(sine.slow(8).range(300,1500))` for movement
+- **Vowel formants**: `vowel("<a e i o>")` humanizes synths
+
+### Pattern Effects for Interest
+- **jux()**: Stereo spread with modification
+- **off()**: Delayed echoes - `off(1/8, x => x.add(7))`
+- **ply()**: Rhythmic multiplication - `ply("<1 2 3>")`
+- **rev()**: Reverse patterns for texture
+
+### Visual Integration
+- **Inline visuals**: `._punchcard()`, `._pianoroll()` aid composition
+- **Color coding**: Match visual colors to instrument families
+- **Claude palette**: Use #ff6b35, #ff8c42, #ffa726 for nightlife sunset vibes
+
+**Key insight**: Less harsh, more space, rhythmic subtlety over complexity creates professional-sounding music.

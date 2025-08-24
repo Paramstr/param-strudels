@@ -200,7 +200,87 @@
 .autocomplete-info-tooltip::-webkit-scrollbar-thumb:hover {
 }
 
-/* API Status Animations */
+/* Retro ASCII API Status Animations */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px currentColor, 0 0 10px currentColor;
+  }
+  50% {
+    box-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor;
+  }
+}
+
+@keyframes soft-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.3), 0 0 16px rgba(34, 197, 94, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.4), 0 0 24px rgba(34, 197, 94, 0.2);
+  }
+}
+
+@keyframes flash-border {
+  0% {
+    border-color: #fb923c;
+    box-shadow: 0 0 10px #fb923c;
+  }
+  50% {
+    border-color: #ffedd5;
+    box-shadow: 0 0 20px #fb923c, 0 0 30px #ffedd5;
+  }
+  100% {
+    border-color: #fb923c;
+    box-shadow: 0 0 10px #fb923c;
+  }
+}
+
+@keyframes scroll-text {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-soft-glow {
+  animation: soft-glow 3s ease-in-out infinite;
+}
+
+.animate-flash-border {
+  animation: flash-border 0.4s ease-in-out;
+}
+
+.animate-scroll-text {
+  animation: scroll-text 8s linear infinite;
+  display: inline-block;
+}
+
+/* ASCII Border styling */
+.ascii-border::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, transparent, currentColor, transparent);
+  border-radius: 2px;
+  opacity: 0.3;
+  z-index: -1;
+}
+
+/* Retro terminal styling */
+.retro-terminal {
+  background: radial-gradient(ellipse at center, #1a1a1a 0%, #000000 100%);
+  text-shadow: 0 0 5px currentColor;
+}
+
+/* Old fade-in animation kept for compatibility */
 @keyframes fade-in-slide {
   from {
     opacity: 0;
